@@ -17,6 +17,9 @@ LuxTTS is an lightweight zipvoice based text-to-speech model designed for high q
 
 https://github.com/user-attachments/assets/a3b57152-8d97-43ce-bd99-26dc9a145c29
 
+### Alternative Implementations
+- Apple Silicon MLX implementation (community-maintained): [jishnuvenugopal/LuxTTS-mlx](https://github.com/jishnuvenugopal/LuxTTS-mlx)
+- PyPI package: [LuxTTS-mlx](https://pypi.org/project/LuxTTS-mlx/)
 
 ### The main features are
 - Voice cloning: SOTA voice cloning on par with models 10x larger.
