@@ -42,7 +42,11 @@ pip install -r requirements.txt
 from zipvoice.luxvoice import LuxTTS
 
 # load model on GPU
-lux_tts = LuxTTS('YatharthS/LuxTTS', device='cuda')
+# float32 (default)
+lux_tts = LuxTTS('YatharthS/LuxTTS', device='cuda', threads=2)
+
+# float16 (~2x faster, recommended for GPU)
+lux_tts = LuxTTS('YatharthS/LuxTTS', device='cuda', dtype='float16')
 
 # load model on CPU
 # lux_tts = LuxTTS('YatharthS/LuxTTS', device='cpu', threads=2)
@@ -111,6 +115,7 @@ if display is not None:
 - Please use at minimum a 3 second audio file for voice cloning.
 - You can use return_smooth = True if you hear metallic sounds.
 - Lower t_shift for less possible pronunciation errors but worse quality and vice versa.
+- Use `dtype='float16'` on GPU for ~2x faster inference with no perceptible quality difference.
 
 ## Community
 - [Lux-TTS-Gradio](https://github.com/NidAll/LuxTTS-Gradio): A gradio app to use LuxTTS.
@@ -127,7 +132,11 @@ A: LuxTTS uses the same architecture but distilled to 4 steps with an improved s
 
 Q: Can it be even faster?
 
-A: Yes, currently it uses float32. Float16 should be significantly faster(almost 2x).
+A: Yes, pass `dtype='float16'` when loading the model. This runs inference in half precision and is approximately 2x faster on GPU with no perceptible quality loss.
+
+Q: Does float16 work on CPU?
+
+A: No, PyTorch does not support float16 on CPU. LuxTTS will automatically fall back to float32 with a printed warning if you try.
 
 ## Roadmap
 
@@ -135,7 +144,7 @@ A: Yes, currently it uses float32. Float16 should be significantly faster(almost
 - [x] Huggingface spaces demo
 - [x] Release MPS support (thanks to @builtbybasit)
 - [ ] Release LuxTTS v1.5
-- [ ] Release code for float16 inference
+- [x] Release code for float16 inference
 
 ## Acknowledgments
 

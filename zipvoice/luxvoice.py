@@ -7,8 +7,8 @@ class LuxTTS:
     LuxTTS class for encoding prompt and generating speech on cpu/cuda/mps.
     """
 
-    def __init__(self, model_path='YatharthS/LuxTTS', device='cuda', threads=4):
-        if model_path == 'YatharthS/LuxTTS':
+    def __init__(self, model_path="YatharthS/LuxTTS", device="cuda", threads=4, dtype="float32"):
+        if model_path == "YatharthS/LuxTTS":
             model_path = None
 
         # Auto-detect better device if cuda is requested but not available
@@ -27,6 +27,17 @@ class LuxTTS:
             model, feature_extractor, vocos, tokenizer, transcriber = load_models_gpu(model_path, device=device)
             print("Loading model on GPU")
 
+        if dtype == "float16" or dtype == torch.float16:
+            if device == "cpu":
+                print(
+                    "Warning: float16 is not supported on CPU, falling back to float32"
+                )
+                self.dtype = torch.float32
+            else:
+                self.dtype = torch.float16
+        else:
+            self.dtype = torch.float32
+
         self.model = model
         self.feature_extractor = feature_extractor
         self.vocos = vocos
@@ -35,12 +46,19 @@ class LuxTTS:
         self.device = device
         self.vocos.freq_range = 12000
 
-
+        if self.dtype == torch.float16:
+            self.model = self.model.to(dtype=torch.float16)
+            self.vocos = self.vocos.to(dtype=torch.float16)
 
     def encode_prompt(self, prompt_audio, duration=5, rms=0.001):
         """encodes audio prompt according to duration and rms(volume control)"""
         prompt_tokens, prompt_features_lens, prompt_features, prompt_rms = process_audio(prompt_audio, self.transcriber, self.tokenizer, self.feature_extractor, self.device, target_rms=rms, duration=duration)
-        encode_dict = {"prompt_tokens": prompt_tokens, 'prompt_features_lens': prompt_features_lens, 'prompt_features': prompt_features, 'prompt_rms': prompt_rms}
+
+        if self.dtype == torch.float16 and self.device != "cpu":
+            if prompt_features is not None:
+                prompt_features = prompt_features.to(dtype=torch.float16)
+
+        encode_dict = {"prompt_tokens": prompt_tokens, "prompt_features_lens": prompt_features_lens, "prompt_features": prompt_features, "prompt_rms": prompt_rms}
 
         return encode_dict
 
@@ -54,9 +72,10 @@ class LuxTTS:
         else:
             self.vocos.return_48k = True
 
-        if self.device == 'cpu':
+        if self.device == "cpu":
             final_wav = generate_cpu(prompt_tokens, prompt_features_lens, prompt_features, prompt_rms, text, self.model, self.vocos, self.tokenizer, num_step=num_steps, guidance_scale=guidance_scale, t_shift=t_shift, speed=speed)
         else:
-            final_wav = generate(prompt_tokens, prompt_features_lens, prompt_features, prompt_rms, text, self.model, self.vocos, self.tokenizer, num_step=num_steps, guidance_scale=guidance_scale, t_shift=t_shift, speed=speed)
+            with torch.autocast(device_type=self.device, dtype=self.dtype, enabled=(self.dtype == torch.float16)):
+                final_wav = generate(prompt_tokens, prompt_features_lens, prompt_features, prompt_rms, text, self.model, self.vocos, self.tokenizer, num_step=num_steps, guidance_scale=guidance_scale, t_shift=t_shift, speed=speed)
 
-        return final_wav.cpu()
+        return final_wav.cpu().float()
