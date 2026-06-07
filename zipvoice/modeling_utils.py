@@ -124,15 +124,18 @@ def load_models_gpu(model_path=None, device="cuda"):
     params.sampling_rate = model_config["feature"]["sampling_rate"]
     return model, feature_extractor, vocos, tokenizer, transcriber
 
-def load_models_cpu(model_path = None, num_thread=2):
+def load_models_cpu(model_path = None, num_thread=2, onnx_int8=False):
     params = LuxTTSConfig()
     params.seed = 42
 
-    model_path = snapshot_download('YatharthS/LuxTTS')
+    if model_path is None:
+        model_path = snapshot_download('YatharthS/LuxTTS')
 
     token_file = f"{model_path}/tokens.txt"
-    text_encoder_path = f"{model_path}/text_encoder.onnx"
-    fm_decoder_path = f"{model_path}/fm_decoder.onnx"
+    text_encoder_name = "text_encoder_int8.onnx" if onnx_int8 else "text_encoder.onnx"
+    fm_decoder_name = "fm_decoder_int8.onnx" if onnx_int8 else "fm_decoder.onnx"
+    text_encoder_path = f"{model_path}/{text_encoder_name}"
+    fm_decoder_path = f"{model_path}/{fm_decoder_name}"
     model_config  = f"{model_path}/config.json"
 
     transcriber = pipeline("automatic-speech-recognition", model="openai/whisper-tiny", device='cpu')
@@ -153,5 +156,4 @@ def load_models_cpu(model_path = None, num_thread=2):
     feature_extractor = VocosFbank()
 
     params.sampling_rate = model_config["feature"]["sampling_rate"]
-    params.onnx_int8 = True
     return model, feature_extractor, vocos, tokenizer, transcriber

@@ -7,7 +7,7 @@ class LuxTTS:
     LuxTTS class for encoding prompt and generating speech on cpu/cuda/mps.
     """
 
-    def __init__(self, model_path='YatharthS/LuxTTS', device='cuda', threads=4):
+    def __init__(self, model_path='YatharthS/LuxTTS', device='cuda', threads=4, onnx_int8=False):
         if model_path == 'YatharthS/LuxTTS':
             model_path = None
 
@@ -21,7 +21,9 @@ class LuxTTS:
                 device = 'cpu'
 
         if device == 'cpu':
-            model, feature_extractor, vocos, tokenizer, transcriber = load_models_cpu(model_path, threads)
+            model, feature_extractor, vocos, tokenizer, transcriber = load_models_cpu(
+                model_path, threads, onnx_int8=onnx_int8
+            )
             print("Loading model on CPU")
         else:
             model, feature_extractor, vocos, tokenizer, transcriber = load_models_gpu(model_path, device=device)
