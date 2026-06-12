@@ -82,6 +82,7 @@ def generate(prompt_tokens, prompt_features_lens, prompt_features, prompt_rms, t
 
     # Convert to waveform
     pred_features = pred_features.permute(0, 2, 1) / 0.1
+    pred_features = pred_features.float() # cast to float32 for vocoder stability
     wav = vocoder.decode(pred_features).squeeze(1).clamp(-1, 1)
 
     # Volume matching
