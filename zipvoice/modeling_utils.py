@@ -111,7 +111,7 @@ def load_models_gpu(model_path=None, device="cuda"):
         **tokenizer_config,
     )
     load_checkpoint(filename=model_ckpt, model=model, strict=True)
-    params.device = torch.device(device, 0)
+    params.device = torch.device(device)
 
     model = model.to(params.device).eval()
     feature_extractor = VocosFbank()
