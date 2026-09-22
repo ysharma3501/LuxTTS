@@ -37,6 +37,21 @@ cd LuxTTS
 pip install -r requirements.txt
 ```
 
+#### Intel GPU (XPU)
+
+For Intel GPU inference, install the XPU requirements instead of the default
+requirements. The pinned PyTorch pair was validated on Windows with an Intel
+Arc A770:
+
+```bash
+python -m pip install -r requirements-xpu.txt
+python -c "import torch; available = torch.xpu.is_available(); print('XPU available:', available); print(torch.xpu.get_device_name(0) if available else 'No XPU device detected')"
+```
+
+Select the device explicitly with `device='xpu'` or `device='xpu:0'`. When the
+default `device='cuda'` is unavailable, LuxTTS automatically tries XPU, then
+MPS, then CPU. XPU inference is supported; XPU training has not been validated.
+
 #### Load model:
 ```python
 from zipvoice.luxvoice import LuxTTS
@@ -49,6 +64,9 @@ lux_tts = LuxTTS('YatharthS/LuxTTS', device='cuda')
 
 # load model on MPS for macs
 # lux_tts = LuxTTS('YatharthS/LuxTTS', device='mps')
+
+# load model on an Intel GPU with an XPU-enabled PyTorch build
+# lux_tts = LuxTTS('YatharthS/LuxTTS', device='xpu')
 ```
 
 #### Simple inference

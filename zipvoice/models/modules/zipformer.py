@@ -29,6 +29,8 @@ from torch import Tensor, nn
 
 if torch.cuda.is_available():
     DEVICE_TYPE = "cuda"
+elif hasattr(torch, "xpu") and torch.xpu.is_available():
+    DEVICE_TYPE = "xpu"
 elif torch.backends.mps.is_available():
     DEVICE_TYPE = "mps"
 else:
@@ -1317,7 +1319,7 @@ class RelPositionMultiheadAttentionWeights(nn.Module):
         (num_heads, batch_size, seq_len, seq_len) = attn_weights.shape
 
         with torch.no_grad():
-            with torch.amp.autocast(DEVICE_TYPE, enabled=False):
+            with torch.amp.autocast(attn_weights.device.type, enabled=False):
                 attn_weights = attn_weights.to(torch.float32)
                 attn_weights_entropy = (
                     -((attn_weights + 1.0e-20).log() * attn_weights)

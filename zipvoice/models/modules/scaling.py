@@ -35,6 +35,8 @@ from torch import Tensor
 
 if torch.cuda.is_available():
     DEVICE_TYPE = "cuda"
+elif hasattr(torch, "xpu") and torch.xpu.is_available():
+    DEVICE_TYPE = "xpu"
 elif torch.backends.mps.is_available():
     DEVICE_TYPE = "mps"
 else:
@@ -333,7 +335,7 @@ class SoftmaxFunction(torch.autograd.Function):
     @staticmethod
     def backward(ctx, ans_grad: Tensor):
         (ans,) = ctx.saved_tensors
-        with torch.amp.autocast(DEVICE_TYPE, enabled=False):
+        with torch.amp.autocast(ans_grad.device.type, enabled=False):
             ans_grad = ans_grad.to(torch.float32)
             ans = ans.to(torch.float32)
             x_grad = ans_grad * ans
@@ -549,7 +551,7 @@ class BalancerFunction(torch.autograd.Function):
 
         try:
             with torch.enable_grad():
-                with torch.amp.autocast(DEVICE_TYPE, enabled=False):
+                with torch.amp.autocast(x.device.type, enabled=False):
                     x = x.to(torch.float32)
                     x = x.detach()
                     x.requires_grad = True
@@ -816,7 +818,7 @@ class WhiteningPenaltyFunction(torch.autograd.Function):
 
         try:
             with torch.enable_grad():
-                with torch.amp.autocast(DEVICE_TYPE, enabled=False):
+                with torch.amp.autocast(x_orig.device.type, enabled=False):
                     x_detached = x_orig.to(torch.float32).detach()
                     x_detached.requires_grad = True
 
@@ -1060,7 +1062,7 @@ class SwooshLFunction(torch.autograd.Function):
 
         coeff = -0.08
 
-        with torch.amp.autocast(DEVICE_TYPE, enabled=False):
+        with torch.amp.autocast(x.device.type, enabled=False):
             with torch.enable_grad():
                 x = x.detach()
                 x.requires_grad = True
@@ -1138,7 +1140,7 @@ class SwooshRFunction(torch.autograd.Function):
 
         zero = torch.tensor(0.0, dtype=x.dtype, device=x.device)
 
-        with torch.amp.autocast(DEVICE_TYPE, enabled=False):
+        with torch.amp.autocast(x.device.type, enabled=False):
             with torch.enable_grad():
                 x = x.detach()
                 x.requires_grad = True
@@ -1201,7 +1203,7 @@ class SwooshROnnx(torch.nn.Module):
 # simple version of SwooshL that does not redefine the backprop, used in
 # ActivationDropoutAndLinearFunction.
 def SwooshLForward(x: Tensor):
-    with torch.amp.autocast(DEVICE_TYPE, enabled=False):
+    with torch.amp.autocast(x.device.type, enabled=False):
         x = x.to(torch.float32)
         x_offset = x - 4.0
         log_sum = (1.0 + x_offset.exp()).log().to(x.dtype)
@@ -1212,7 +1214,7 @@ def SwooshLForward(x: Tensor):
 # simple version of SwooshR that does not redefine the backprop, used in
 # ActivationDropoutAndLinearFunction.
 def SwooshRForward(x: Tensor):
-    with torch.amp.autocast(DEVICE_TYPE, enabled=False):
+    with torch.amp.autocast(x.device.type, enabled=False):
         x = x.to(torch.float32)
         x_offset = x - 1.0
         log_sum = (1.0 + x_offset.exp()).log().to(x.dtype)

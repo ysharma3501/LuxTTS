@@ -2,23 +2,44 @@ import torch
 from zipvoice.modeling_utils import process_audio, generate, load_models_gpu, load_models_cpu
 from zipvoice.onnx_modeling import generate_cpu
 
+
+def _xpu_is_available():
+    return hasattr(torch, "xpu") and torch.xpu.is_available()
+
+
+def _resolve_device(device):
+    device_type = torch.device(device).type
+
+    if device_type == 'cuda' and not torch.cuda.is_available():
+        if _xpu_is_available():
+            print("CUDA not available, switching to XPU")
+            return 'xpu'
+        if torch.backends.mps.is_available():
+            print("CUDA not available, switching to MPS")
+            return 'mps'
+
+        print("CUDA not available, switching to CPU")
+        return 'cpu'
+
+    if device_type == 'xpu' and not _xpu_is_available():
+        raise RuntimeError(
+            "XPU was requested but is unavailable. Install an XPU-enabled "
+            "PyTorch build and verify torch.xpu.is_available()."
+        )
+
+    return device
+
+
 class LuxTTS:
     """
-    LuxTTS class for encoding prompt and generating speech on cpu/cuda/mps.
+    LuxTTS class for encoding prompt and generating speech on cpu/cuda/xpu/mps.
     """
 
     def __init__(self, model_path='YatharthS/LuxTTS', device='cuda', threads=4):
         if model_path == 'YatharthS/LuxTTS':
             model_path = None
 
-        # Auto-detect better device if cuda is requested but not available
-        if device == 'cuda' and not torch.cuda.is_available():
-            if torch.backends.mps.is_available():
-                print("CUDA not available, switching to MPS")
-                device = 'mps'
-            else:
-                print("CUDA not available, switching to CPU")
-                device = 'cpu'
+        device = _resolve_device(device)
 
         if device == 'cpu':
             model, feature_extractor, vocos, tokenizer, transcriber = load_models_cpu(model_path, threads)
